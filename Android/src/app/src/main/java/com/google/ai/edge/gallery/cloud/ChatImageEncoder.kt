@@ -20,10 +20,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
-import kotlin.io.encoding.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -77,8 +77,12 @@ object ChatImageEncoder {
       setOf(decoded, scaled, rotated).forEach { it.recycle() }
 
       // Pickers frequently report no type, and some report HEIC which no provider accepts, so the
-      // re-encoded payload is always plain JPEG.
-      ChatImage(mimeType = "image/jpeg", base64Data = Base64.encodeToString(bytes))
+      // re-encoded payload is always plain JPEG. NO_WRAP keeps the body a single line, which is what
+      // every provider's base64 decoder expects.
+      ChatImage(
+        mimeType = "image/jpeg",
+        base64Data = Base64.encodeToString(bytes, Base64.NO_WRAP),
+      )
     }.also { Log.d(TAG, "Encoded attachment as ${it.base64Data.length} base64 chars") }
 
   /** Largest power of two that keeps both edges at or above [MAX_EDGE_PX]. */

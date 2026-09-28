@@ -111,7 +111,8 @@ constructor(
         initialValue = CloudSettingsUiState(),
       )
 
-  val fetchState: StateFlow<Map<ProviderType, FetchState>> = fetchStates.asStateFlow()
+  // Exposed read-only on purpose: callers see a StateFlow, so they cannot mutate the backing map.
+  val fetchState: StateFlow<Map<ProviderType, FetchState>> = fetchStates
 
   private fun buildState(settings: CloudSettings): CloudSettingsUiState {
     val providers =

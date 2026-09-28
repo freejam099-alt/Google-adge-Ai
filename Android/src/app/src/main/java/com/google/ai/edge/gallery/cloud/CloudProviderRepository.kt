@@ -33,9 +33,9 @@ import kotlinx.coroutines.flow.map
  * parameters) live in a proto DataStore. API keys live in [SecureApiKeyStore] because they are
  * bearer credentials for paid accounts.
  *
- * Note on generated accessors: `providers` is a proto `map` field, so the javalite generator emits
- * `getProvidersMap()` / `putProviders(k, v)` / `removeProviders(k)` — there is no `getProvidersList`.
- * Those Java-style names are used deliberately throughout this file.
+ * Note on generated accessors: `providers` is a `repeated` field, not a `map`, so the javalite
+ * generator emits `getProvidersList()` / `addAllProviders(…)` / `clearProviders()`. Entries are
+ * therefore matched on `providerId`; see [withProvider].
  */
 @Singleton
 open class CloudProviderRepository
@@ -57,7 +57,7 @@ constructor(
 
   /** A per-provider view that the UI can bind to directly. */
   val providerConfigs: Flow<Map<String, CloudProviderConfig>> =
-    settings.map { current -> current.getProvidersMap() }
+    settings.map { current -> current.providersList.associateBy { it.providerId } }
 
   suspend fun read(): CloudSettings = settings.first()
 
@@ -65,8 +65,34 @@ constructor(
 
   /** The stored config for [type], or a fresh default one. */
   fun configOrDefault(current: CloudSettings, type: ProviderType): CloudProviderConfig =
-    current.getProvidersMap()[type.descriptor.id]
+    current.providersList
+      .firstOrNull { it.providerId == type.descriptor.id }
       ?: CloudProviderConfig.newBuilder().setProviderId(type.descriptor.id).build()
+
+  /**
+   * Replaces the entry for [type], appending it when absent.
+   *
+   * `providers` is a repeated field rather than a map, so entries are matched on `providerId`. A
+   * listing of at most nine providers is cheap to walk, and rebuilding the list in one step keeps the
+   * write atomic, which a put-then-clear sequence would not be.
+   */
+  private fun CloudSettings.Builder.withProvider(
+    type: ProviderType,
+    config: CloudProviderConfig,
+  ): CloudSettings.Builder {
+    val merged = mutableListOf<CloudProviderConfig>()
+    var replaced = false
+    providersList.forEach { existing ->
+      if (existing.providerId == type.descriptor.id) {
+        merged.add(config)
+        replaced = true
+      } else {
+        merged.add(existing)
+      }
+    }
+    if (!replaced) merged.add(config)
+    return clearProviders().addAllProviders(merged)
+  }
 
   /** Effective base url: the user override when set, otherwise the provider default. */
   fun baseUrl(current: CloudSettings, type: ProviderType): String {
@@ -111,7 +137,7 @@ constructor(
       current.toBuilder()
         .setLastProviderId(type.descriptor.id)
         .setLastModelId(modelId)
-        .putProviders(type.descriptor.id, provider)
+        .withProvider(type, provider)
         .build()
     }
   }
@@ -144,7 +170,7 @@ constructor(
           .setModelsFetchedAtMs(System.currentTimeMillis())
           .setSelectedModelId(nextSelection)
           .build()
-      current.toBuilder().putProviders(type.descriptor.id, provider).build()
+      current.toBuilder().withProvider(type, provider).build()
     }
   }
 
@@ -197,7 +223,7 @@ constructor(
     dataStore.updateData { current ->
       val builder = configOrDefault(current, type).toBuilder()
       builder.transform()
-      current.toBuilder().putProviders(type.descriptor.id, builder.build()).build()
+      current.toBuilder().withProvider(type, builder.build()).build()
     }
   }
 }

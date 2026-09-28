@@ -85,7 +85,7 @@ open class CloudModelCatalogClient @Inject constructor(private val transport: Cl
       // Keep only models that can actually answer a chat turn.
       .filter { obj ->
         val methods = obj.stringListOrNull("supportedGenerationMethods")
-        methods.isEmpty() || methods.any { it.equals("generateContent", ignoreCase = true) }
+        methods.isNullOrEmpty() || methods.any { it.equals("generateContent", ignoreCase = true) }
       }
       .map { obj ->
         val fullName = obj.stringOrNull("name").orEmpty()
@@ -132,14 +132,14 @@ open class CloudModelCatalogClient @Inject constructor(private val transport: Cl
         // OpenRouter also serves image generators and embedders; keep text-output chat models.
         if (type != ProviderType.OPENROUTER) return@filter true
         val outputModalities = obj.objectOrNull("architecture")?.stringListOrNull("output_modalities")
-        outputModalities.isEmpty() || outputModalities.contains("text")
+        outputModalities.isNullOrEmpty() || outputModalities.contains("text")
       }
       .map { obj ->
         val id = obj.stringOrNull("id") ?: obj.stringOrNull("name").orEmpty()
         val architecture = obj.objectOrNull("architecture")
         val modalities = architecture?.stringListOrNull("input_modalities").orEmpty()
         val outputModalities = architecture?.stringListOrNull("output_modalities").orEmpty()
-        val supportedParams = obj.stringListOrNull("supported_parameters")
+        val supportedParams = obj.stringListOrNull("supported_parameters").orEmpty()
         val pricing = obj.objectOrNull("pricing")
         val lowerId = id.lowercase()
 

@@ -63,7 +63,12 @@ open class WebSearchClient @Inject constructor(private val transport: CloudHttpT
       )
     }
     val count = resultCount.coerceIn(1, descriptor.maxResultCount)
-    val url = descriptor.url(baseUrl = baseUrl, query = query, params = descriptor.extraQueryParams(count))
+    val url =
+      descriptor.url(
+        baseUrl = baseUrl,
+        query = query,
+        params = service.extraQueryParams(count),
+      )
     val headers = authHeaders(service, apiKey)
 
     val body =

@@ -48,10 +48,16 @@ data class CloudChatMessage(
 )
 
 /** Token accounting, when the provider reports it. */
+/**
+ * Token counters for one turn.
+ *
+ * The fields are mutable because a stream only reveals its usage in the closing frames, so the
+ * parser accumulates into a single instance and hands it to the terminal event.
+ */
 data class TokenUsage(
-  val promptTokens: Long = 0,
-  val completionTokens: Long = 0,
-  val reasoningTokens: Long = 0,
+  var promptTokens: Long = 0,
+  var completionTokens: Long = 0,
+  var reasoningTokens: Long = 0,
 ) {
   val totalTokens: Long
     get() = promptTokens + completionTokens

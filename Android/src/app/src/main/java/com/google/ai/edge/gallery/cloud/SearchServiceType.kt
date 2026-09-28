@@ -52,8 +52,7 @@ data class SearchServiceDescriptor(
   /**
    * Builds the request url for a search.
    *
-   * [params] carries the backend specific extras that only make sense on a GET: SearXNG returns
-   * HTML unless `format=json` is set, and Brave caps results with `count`.
+   * [params] carries the backend specific extras that only make sense on a GET.
    */
   fun url(baseUrl: String, query: String, params: Map<String, String> = emptyMap()): String {
     val base = baseUrl.trim().trimEnd('/')
@@ -63,15 +62,6 @@ data class SearchServiceDescriptor(
     params.forEach { (name, value) -> parts.add("$name=${URLEncoder.encode(value, "UTF-8")}") }
     return "$base$suffix?" + parts.joinToString("&")
   }
-
-  /** Query string parameters this backend needs in addition to the search term. */
-  fun extraQueryParams(resultCount: Int): Map<String, String> =
-    when (this) {
-      // Without format=json SearXNG answers with an HTML page that cannot be parsed.
-      SEARXNG -> mapOf("format" to "json", "language" to "en")
-      BRAVE -> mapOf("count" to resultCount.coerceIn(1, maxResultCount).toString())
-      else -> emptyMap()
-    }
 }
 
 /** Web search backends offered under Settings > Search Service. */
@@ -145,6 +135,20 @@ enum class SearchServiceType(val descriptor: SearchServiceDescriptor) {
     )
   ),
   ;
+
+  /**
+   * Query string parameters this backend needs in addition to the search term.
+   *
+   * These live on the enum rather than on [SearchServiceDescriptor] because they are named after enum
+   * entries, which are not in scope from inside the descriptor.
+   */
+  fun extraQueryParams(resultCount: Int): Map<String, String> =
+    when (this) {
+      // Without format=json SearXNG answers with an HTML page that cannot be parsed.
+      SEARXNG -> mapOf("format" to "json", "language" to "en")
+      BRAVE -> mapOf("count" to resultCount.coerceIn(1, descriptor.maxResultCount).toString())
+      else -> emptyMap()
+    }
 
   companion object {
     private val BY_ID: Map<String, SearchServiceType> =
