@@ -1,0 +1,91 @@
+/* Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ==============================================================================*/
+
+syntax = "proto3";
+
+package com.google.ai.edge.gallery.proto;
+
+option java_multiple_files = true;
+option java_outer_classname = "CloudProto";
+option java_package = "com.google.ai.edge.gallery.proto";
+
+// A model discovered from a remote provider's model listing endpoint.
+message CloudModel {
+  // The provider specific identifier used in the `model` request field.
+  string id = 1;
+  // A human friendly name, when the provider exposes one.
+  string display_name = 2;
+  // Short description, when the provider exposes one.
+  string description = 3;
+  // Maximum context window in tokens, or 0 when unknown.
+  int64 context_length = 4;
+  // Maximum output tokens, or 0 when unknown.
+  int64 max_output_tokens = 5;
+  // The vendor / owner of the model.
+  string owned_by = 6;
+  // Whether the model advertises image input support.
+  bool supports_vision = 7;
+  // Whether the model advertises tool / function calling support.
+  bool supports_tools = 8;
+  // Whether the model advertises reasoning / thinking support.
+  bool supports_thinking = 9;
+  // Price per prompt token, as returned by the provider (string to keep precision).
+  string pricing_prompt = 10;
+  // Price per completion token, as returned by the provider (string to keep precision).
+  string pricing_completion = 11;
+  // Whether the user pinned this model to the top of the list.
+  bool favorite = 12;
+}
+
+// Configuration and cached catalog for a single cloud provider.
+message CloudProviderConfig {
+  // Matches `ProviderType.id`.
+  string provider_id = 1;
+  // User supplied base url override. Empty means "use the provider default".
+  string base_url_override = 2;
+  // Models last fetched from the provider's listing endpoint.
+  repeated CloudModel models = 3;
+  // Wall clock time of the last successful fetch, in milliseconds.
+  int64 models_fetched_at_ms = 4;
+  // The model id the user picked for this provider.
+  string selected_model_id = 5;
+}
+
+// Global settings for the multi provider cloud chat experience.
+message CloudSettings {
+  repeated CloudProviderConfig providers = 1;
+  // The provider the user last chatted with.
+  string last_provider_id = 2;
+  // The model the user last chatted with.
+  string last_model_id = 3;
+  // Whether responses are streamed token by token.
+  bool streaming_enabled = 4;
+  // Sampling temperature.
+  double temperature = 5;
+  // Maximum number of output tokens requested per turn.
+  int32 max_output_tokens = 6;
+  // System prompt prepended to every conversation.
+  string system_prompt = 7;
+  // Whether reasoning traces are requested and rendered.
+  bool show_thinking = 8;
+  // Whether the built-in web search tool is offered to the model.
+  bool search_enabled = 9;
+  // Which search backend to use. Empty means "none selected".
+  string search_provider_id = 10;
+  // How many search results to inject into the prompt.
+  int32 search_result_count = 11;
+  // Whether the user pinned this provider to the top of the provider list.
+  bool favorite_provider = 12;
+}
